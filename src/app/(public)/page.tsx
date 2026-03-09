@@ -1,4 +1,6 @@
 import { auth } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
