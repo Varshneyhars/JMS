@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+
+enum Role {
+  ADMIN
+  REVIEWER
+  AUTHOR
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  DESK_REVIEW
+  DESK_REJECTED
+  PEER_REVIEW
+  REVISION_REQUESTED
+  REVISION_SUBMITTED
+  ACCEPTED
+  REJECTED
+  IN_COPYEDITING
+  PUBLISHED
+  WITHDRAWN
+}
+
+enum ReviewDecision {
+  ACCEPT
+  MINOR_REVISION
+  MAJOR_REVISION
+  REJECT
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          Role      @default(AUTHOR)
+  bio           String?
+  orcid         String?   // ORCID identifier
+  expertise     String?   // comma-separated keywords
+  institution   String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  submissions        Submission[]     @relation("PublisherSubmissions")
+  assignedReviews    ReviewInvitation[] @relation("ReviewerInvitations")
+  activityLogs       ActivityLog[]
+}
+
+model Journal {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  scope           String?
+  issnPrint       String?
+  issnOnline      String?
+  isActive        Boolean  @default(true)
+  reviewType      String   @default("DOUBLE_BLIND") // SINGLE_BLIND, DOUBLE_BLIND, OPEN
+  reviewerCount   Int      @default(2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  submissions     Submission[]
+}
+
+model Submission {
+  id              String           @id @default(cuid())
+  manuscriptId    String           @unique @default(cuid())
+  title           String
+  abstract        String
+  keywords        String           // comma-separated
+  authorName      String
+  authorEmail     String
+  institution     String?
+  coAuthors       String?          // JSON string
+  coverLetter     String?
+  status          SubmissionStatus @default(DRAFT)
+  fileUrl         String?
+  fileName        String?
+  fileSize        Int?
+
+  publisherId     String
+  publisher       User             @relation("PublisherSubmissions", fields: [publisherId], references: [id])
+  journalId       String?
+  journal         Journal?         @relation(fields: [journalId], references: [id])
+
+  submittedAt     DateTime?
+  deskReviewedAt  DateTime?
+  reviewStartedAt DateTime?
+  decisionAt      DateTime?
+  publishedAt     DateTime?
+
+  currentRevision Int      @default(0)
+  revisionDueDate DateTime?
+  deskNotes       String?  // Admin internal notes
+  viewCount       Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  reviewInvitations ReviewInvitation[]
+  statusHistory     StatusHistory[]
+  activityLogs      ActivityLog[]
+
+  @@index([publisherId])
+  @@index([status])
+  @@index([journalId])
+  @@index([updatedAt])
+}
+
+model ReviewInvitation {
+  id              String           @id @default(cuid())
+  submissionId    String
+  submission      Submission       @relation(fields: [submissionId], references: [id])
+  reviewerId      String
+  reviewer        User             @relation("ReviewerInvitations", fields: [reviewerId], references: [id])
+
+  status          InvitationStatus @default(PENDING)
+  invitedAt       DateTime         @default(now())
+  respondedAt     DateTime?
+  dueDate         DateTime?
+  declinedReason  String?
+
+  review          Review?
+  conflictOfInterest String? // null=not declared, empty=no conflict, text=conflict details
+
+  @@unique([submissionId, reviewerId])
+  @@index([reviewerId])
+  @@index([status])
+}
+
+model Review {
+  id               String         @id @default(cuid())
+  invitationId     String         @unique
+  invitation       ReviewInvitation @relation(fields: [invitationId], references: [id])
+
+  // Scoring rubric (1-5)
+  scoreOriginality    Int?
+  scoreMethodology    Int?
+  scoreClarity        Int?
+  scoreSignificance   Int?
+  overallScore        Float?
+
+  decision         ReviewDecision?
+  publicComments   String?       // Shown to publisher
+  privateComments  String?       // Editor/Admin only
+
+  isSubmitted      Boolean        @default(false)
+  submittedAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model StatusHistory {
+  id           String           @id @default(cuid())
+  submissionId String
+  submission   Submission       @relation(fields: [submissionId], references: [id])
+  fromStatus   SubmissionStatus?
+  toStatus     SubmissionStatus
+  note         String?
+  changedAt    DateTime         @default(now())
+
+  @@index([submissionId])
+}
+
+model ActivityLog {
+  id           String     @id @default(cuid())
+  userId       String?
+  user         User?      @relation(fields: [userId], references: [id])
+  submissionId String?
+  submission   Submission? @relation(fields: [submissionId], references: [id])
+  action       String
+  details      String?
+  createdAt    DateTime   @default(now())
+
+  @@index([action])
+  @@index([userId])
+}
