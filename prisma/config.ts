@@ -24,7 +24,7 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
-const connectionString = process.env.DATABASE_URL!;
+const connectionString = process.env.DATABASE_URL ?? "postgresql://localhost:5432/jms";
 
 export default defineConfig({
   // @ts-expect-error earlyAccess is valid but type not exported
