@@ -12,6 +12,8 @@ function createPrismaClient() {
       ? { rejectUnauthorized: true }
       : { rejectUnauthorized: false },
     max: 1,
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 5000,
   });
   return new PrismaClient({ adapter });
 }
