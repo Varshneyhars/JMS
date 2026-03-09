@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 import { Badge } from "@/components/ui/badge";
 import { KeywordCloud } from "@/components/ui/keyword-cloud";
 import { Award } from "lucide-react";
@@ -34,7 +36,7 @@ export default async function EditorialBoardPage() {
           <div className="rounded-xl border bg-muted/30 p-6 flex items-start gap-5">
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <span className="text-xl font-bold text-primary">
-                {admin.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                {admin.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
               </span>
             </div>
             <div>
@@ -56,10 +58,10 @@ export default async function EditorialBoardPage() {
           Review Board Members ({reviewers.length})
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {reviewers.map((r) => {
-            const submitted = r.assignedReviews.filter((i) => i.review?.isSubmitted);
+          {reviewers.map((r: (typeof reviewers)[number]) => {
+            const submitted = r.assignedReviews.filter((i: { review?: { isSubmitted: boolean; overallScore: number | null } | null }) => i.review?.isSubmitted);
             const avgScore = submitted.length > 0
-              ? submitted.reduce((a, i) => a + (i.review?.overallScore ?? 0), 0) / submitted.length
+              ? submitted.reduce((a: number, i: { review?: { isSubmitted: boolean; overallScore: number | null } | null }) => a + (i.review?.overallScore ?? 0), 0) / submitted.length
               : null;
             const isOutstanding = submitted.length >= 5 && (avgScore ?? 0) >= 3.5;
 
@@ -68,7 +70,7 @@ export default async function EditorialBoardPage() {
                 <div className="flex items-start gap-3">
                   <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <span className="text-sm font-bold text-muted-foreground">
-                      {r.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                      {r.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                     </span>
                   </div>
                   <div className="min-w-0 flex-1">
